@@ -1,4 +1,5 @@
 import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
 import {
   TouchableOpacity,
   Image,
@@ -7,14 +8,104 @@ import {
   Text,
   View,
 } from "react-native";
+import * as Location from "expo-location";
 
 export default function Homepage() {
-  const buttonClickedHandler = () => {
-    console.log("You have been clicked a button!");
-    // do something
+  const [location, setLocation] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [locationData, setLocationData] = useState([]);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 40.0,
+    longitude: 32.8116347,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+
+  const curLoc = async () => {
+    // function for getting current location of a user
+    let { status } = await Location.requestForegroundPermissionsAsync(); //request for foreground permission
+    if (status !== "granted") {
+      setErrorMsg("Permission to access location was denied");
+      return;
+    }
+    let location = await Location.getCurrentPositionAsync({}); // getting current postion of a user
+    setLocation(location);
+    setMapRegion({
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+      latitudeDelta: 0.0922,
+      longitudeDelta: 0.0421,
+    });
+    console.log("Current location is : ");
+    console.log(location);
+
+    let statusBackground = await Location.requestBackgroundPermissionsAsync(); // requesting bg permission
+    if (statusBackground.status !== "granted") {
+      console.log("Error accessing bg location");
+      return false;
+    } else {
+      console.log("Permissioin to access bg location done");
+      return true;
+    }
   };
 
-  const addInfo = () => {
+  const locationTrack = (timeIntr, msg) => {
+    // function for locaion tracking
+    let locationSubscription = Location.watchPositionAsync(
+      {
+        accuracy: Location.Accuracy.High,
+        timeInterval: timeIntr,
+        distanceInterval: 1,
+      },
+      (location) => {
+        console.log(msg);
+        // console.log(location);
+        console.log(location.coords.accuracy);
+        setMapRegion({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        });
+      }
+    );
+  };
+
+  useEffect(() => {
+    curLoc();
+    locationTrack(4000, "LOCATION WHEN WITHOUT HELP :");
+  }, []);
+
+  let curLocArr = []; //array for storing accuracy values
+  let maxArrLength = 4;
+
+  function updateAccuracy(newAccuracy) {
+    //function to find best accuracy
+    if (curLocArr.length < maxArrLength) curLocArr.push(newAccuracy);
+    //curLocArr = curLocArr.slice(-3);
+    console.log("THE ARRAY ELEMENTS ARE :" + curLocArr);
+  }
+
+  const buttonClickedHandler = () => {
+    //on clicking HELP
+    console.log("The accident current location details is : ");
+
+    let locationSubscription = Location.watchPositionAsync(
+      {
+        accuracy: Location.Accuracy.High,
+        timeInterval: 2000,
+        distanceInterval: 1,
+      },
+      (location) => {
+        console.log("LOCATION  WHEN CLICKED HELP : ");
+        console.log(location.coords.accuracy);
+        updateAccuracy(location.coords.accuracy); //storing accurcy values to array 
+      }
+    );
+  };
+
+
+  const addInfo = () => {                              // additional info button functions
     console.log("Additional info button clicked!");
     // do something
   };
@@ -23,7 +114,7 @@ export default function Homepage() {
     <SafeAreaView style={styles.container}>
       <View style={styles.profileBar}>
         <Image
-          source={require("./assets/profimg.png")}
+          source={require("../assets/profimg.png")}
           style={styles.profilePhoto}
         />
         <View style={styles.textContainer}>
@@ -50,16 +141,14 @@ export default function Homepage() {
       </View>
 
       <View style={styles.addInfoBox}>
-      <Text style={styles.addInfotitle}>Got additional details?</Text>
-      <TouchableOpacity style={styles.box}
-      onPress={addInfo}>
-        <Text style={styles.boxText}>Click here</Text>
-      </TouchableOpacity>
+        <Text style={styles.addInfotitle}>Got additional details?</Text>
+        <TouchableOpacity style={styles.box} onPress={addInfo}>
+          <Text style={styles.boxText}>Click here</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -73,8 +162,8 @@ const styles = StyleSheet.create({
     width: "86%",
     height: 74,
     marginTop: 60,
-    borderColor:'yellow',
-    borderWidth:.3,
+    borderColor: "yellow",
+    borderWidth: 0.3,
     borderRadius: 50,
     backgroundColor: "#EEEEEE",
     flexDirection: "row",
@@ -156,43 +245,45 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
 
-  addInfoBox:{
-    position:"absolute",
-    bottom: '10%',
-    left: '22%',
+  addInfoBox: {
+    position: "absolute",
+    bottom: "10%",
+    left: "22%",
     right: 0,
     height: 100,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
-  addInfotitle:{
+  addInfotitle: {
     fontSize: 20,
     marginBottom: 20,
   },
   box: {
     width: 200,
     height: 100,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderColor: '#d9d9d9',
+    justifyContent: "center",
+    alignItems: "center",
+    borderColor: "#d9d9d9",
     borderWidth: 2,
-    borderStyle: 'solid',
-    transform: [{ perspective: 1000 }, { rotateX: '15deg' }, { rotateY: '5deg' }],
+    borderStyle: "solid",
+    transform: [
+      { perspective: 1000 },
+      { rotateX: "15deg" },
+      { rotateY: "5deg" },
+    ],
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 10,
     },
-    shadowOpacity: 0.20,
+    shadowOpacity: 0.2,
     shadowRadius: 4.5,
     elevation: 8,
   },
   boxText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
   },
 });
-
-//Button and its prop in react native
