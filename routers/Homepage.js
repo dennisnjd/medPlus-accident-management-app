@@ -73,7 +73,7 @@ export default function Homepage() {
 
   useEffect(() => {
     curLoc();
-    locationTrack(4000, "LOCATION WHEN WITHOUT HELP :");
+     locationTrack(4000, "LOCATION WHEN WITHOUT HELP :");
   }, []);
 
   let curLocArr = []; //array for storing accuracy values
@@ -82,30 +82,55 @@ export default function Homepage() {
   function updateAccuracy(newAccuracy) {
     //function to find best accuracy
     if (curLocArr.length < maxArrLength) curLocArr.push(newAccuracy);
-    //curLocArr = curLocArr.slice(-3);
-    console.log("THE ARRAY ELEMENTS ARE :" + curLocArr);
+    console.log("THE ARRAY ELEMENTS ARE :" + JSON.stringify(curLocArr));   
+
+    const accuracies = curLocArr          // new array contains accuracy values only
+      .map((item) => item.coords.accuracy)
+      .filter(Boolean);
+    const minAccuracy = Math.min(...accuracies);          // fincing minimum accuracy value in new array
+
+    let sendLocIndex = accuracies.indexOf(minAccuracy);     //find  minimum accuracy's index
+    console.log(sendLocIndex);
+    console.log(`The minimum accuracy value is ${minAccuracy}`);
+
+    let sendLocation = {                                          // returns best accurate location
+      latitude: curLocArr[sendLocIndex].coords.latitude,
+      longitude: curLocArr[sendLocIndex].coords.longitude,
+    };
+
+    console.log(sendLocation);
   }
 
   const buttonClickedHandler = () => {
-    //on clicking HELP
     console.log("The accident current location details is : ");
+    async function getLocationUpdates() {
+      let iterationCount = 0;
+      let locationSubscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 2000,
+          distanceInterval: 1,
+        },
+        (location) => {
+          //console.log("LOCATION  WHEN CLICKED HELP : ");
+          //console.log(location);
+          location.accuracy = parseFloat(location.accuracy);
+          updateAccuracy(location); // storing accuracy values to array
+          iterationCount++;
 
-    let locationSubscription = Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.High,
-        timeInterval: 2000,
-        distanceInterval: 1,
-      },
-      (location) => {
-        console.log("LOCATION  WHEN CLICKED HELP : ");
-        console.log(location.coords.accuracy);
-        updateAccuracy(location.coords.accuracy); //storing accurcy values to array 
-      }
-    );
+          if (iterationCount === 4) {
+            locationSubscription.remove(); //stoping HELP location tracking after 4 iterations
+
+            console.log("Location updates stopped after 4 iterations");
+          }
+        }
+      );
+    }
+    getLocationUpdates();
   };
 
-
-  const addInfo = () => {                              // additional info button functions
+  const addInfo = () => {
+    // additional info button functions
     console.log("Additional info button clicked!");
     // do something
   };
