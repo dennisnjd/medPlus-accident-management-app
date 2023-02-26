@@ -13,6 +13,8 @@ import * as Location from "expo-location";
 export default function Homepage() {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [liveLocArray, setLiveLocArray] = useState([]);
+
   const [locationData, setLocationData] = useState([]);
   const [mapRegion, setMapRegion] = useState({
     latitude: 40.0,
@@ -60,12 +62,24 @@ export default function Homepage() {
       (location) => {
         console.log(msg);
         // console.log(location);
-        console.log(location.coords.accuracy);
-        setMapRegion({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
+        //console.log(location.coords.accuracy);
+
+        let abcd = {
+          Accuracy: location.coords.accuracy,
+          Latitude: location.coords.latitude,
+          Longitude: location.coords.longitude,
+        };
+
+        // update the state of liveLocArray every time a new abcd object is added to it
+        setLiveLocArray((prevState) => {
+          let updatedArray = [...prevState, abcd];
+          while (updatedArray.length > 4) {
+            updatedArray.shift();
+          }
+          console.log(
+            "The live location array is : " + JSON.stringify(updatedArray)
+          );
+          return updatedArray;
         });
       }
     );
@@ -73,61 +87,130 @@ export default function Homepage() {
 
   useEffect(() => {
     curLoc();
-     locationTrack(4000, "LOCATION WHEN WITHOUT HELP :");
+    locationTrack(4000, "LOCATION WHEN WITHOUT HELP :");
   }, []);
 
-  let curLocArr = []; //array for storing accuracy values
-  let maxArrLength = 4;
+  const buttonClickedHandler = () => {
+    console.log("Button pressed");
+    let newAr = liveLocArray;
+    console.log(
+      "The location is array is iss is is :  " + JSON.stringify(newAr)
+    );
+    newAr.Accuracy = parseFloat(newAr.Accuracy);
 
-  function updateAccuracy(newAccuracy) {
-    //function to find best accuracy
-    if (curLocArr.length < maxArrLength) curLocArr.push(newAccuracy);
-    console.log("THE ARRAY ELEMENTS ARE :" + JSON.stringify(curLocArr));   
+    const accuracies = newAr.map((item) => item.Accuracy).filter(Boolean);
+    const minAccuracy = Math.min(...accuracies); // finding minimum accuracy value in new array
+    console.log(minAccuracy);
 
-    const accuracies = curLocArr          // new array contains accuracy values only
-      .map((item) => item.coords.accuracy)
-      .filter(Boolean);
-    const minAccuracy = Math.min(...accuracies);          // fincing minimum accuracy value in new array
-
-    let sendLocIndex = accuracies.indexOf(minAccuracy);     //find  minimum accuracy's index
+    let sendLocIndex = accuracies.indexOf(minAccuracy); //find  minimum accuracy's index
     console.log(sendLocIndex);
-    console.log(`The minimum accuracy value is ${minAccuracy}`);
 
-    let sendLocation = {                                          // returns best accurate location
-      latitude: curLocArr[sendLocIndex].coords.latitude,
-      longitude: curLocArr[sendLocIndex].coords.longitude,
+    let sendLocation = {
+      // returns best accurate location
+      latitude: newAr[sendLocIndex].Latitude,
+      longitude: newAr[sendLocIndex].Longitude,
     };
 
     console.log(sendLocation);
+
+    compareLoc(
+      liveLocArray[3].Latitude,
+      liveLocArray[3].Longitude,
+      9.685082,
+      76.7771992
+    );
+
+    // compareLoc(
+    //   sendLocation.latitude,
+    //   sendLocation.longitude,
+    //   9.685082,
+    //   76.7771992
+    // );
+
+    // console.log("The accident current location details is : ");
+    // async function getLocationUpdates() {
+    //   let iterationCount = 0;
+    //   let locationSubscription = await Location.watchPositionAsync(
+    //     {
+    //       accuracy: Location.Accuracy.High,
+    //       timeInterval: 2000,
+    //       distanceInterval: 1,
+    //     },
+    //     (location) => {
+    //       //console.log("LOCATION  WHEN CLICKED HELP : ");
+    //       //console.log(location);
+    //       location.accuracy = parseFloat(location.accuracy);
+    //       updateAccuracy(location); // storing accuracy values to array
+    //       iterationCount++;
+
+    //       if (iterationCount === 4) {
+    //         locationSubscription.remove(); //stoping HELP location tracking after 4 iterations
+
+    //         console.log("Location updates stopped after 4 iterations");
+    //       }
+    //     }
+    //   );
+    // }
+    // getLocationUpdates();
+  };
+
+  // let curLocArr = []; //array for storing accuracy values
+  // let maxArrLength = 4;
+
+  // function updateAccuracy(newAccuracy) {
+  //   //function to find best accuracy
+  //   if (curLocArr.length < maxArrLength) curLocArr.push(newAccuracy);
+  //   console.log("THE ARRAY ELEMENTS ARE :" + JSON.stringify(curLocArr));
+
+  //   const accuracies = curLocArr // new array contains accuracy values only
+  //     .map((item) => item.coords.accuracy)
+  //     .filter(Boolean);
+  //   const minAccuracy = Math.min(...accuracies); // finding minimum accuracy value in new array
+
+  //   let sendLocIndex = accuracies.indexOf(minAccuracy); //find  minimum accuracy's index
+  //   console.log(sendLocIndex);
+  //   console.log(`The minimum accuracy value is ${minAccuracy}`);
+
+  // let sendLocation = {
+  //   // returns best accurate location
+  //   latitude: curLocArr[sendLocIndex].coords.latitude,
+  //   longitude: curLocArr[sendLocIndex].coords.longitude,
+  // };
+
+  // console.log(sendLocation);
+  // console.log('The latitude is ' +sendLocation.latitude);
+  //   compareLoc(
+  //     sendLocation.latitude,
+  //     sendLocation.longitude,
+  //     9.685082,
+  //     76.7771992
+  //   );
+  // }
+
+  function compareLoc(lat1, lon1, lat2, lon2) {
+    //function to compare and find nearby users
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a = //Haversine Formula
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(deg2rad(lat1)) *
+        Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // Distance in km
+    // return d;
+
+    const radius = 2; // check if the user is in 5KM
+    if (d <= radius) console.log("It is a match");
+    else console.log("It is not a match");
   }
 
-  const buttonClickedHandler = () => {
-    console.log("The accident current location details is : ");
-    async function getLocationUpdates() {
-      let iterationCount = 0;
-      let locationSubscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          timeInterval: 2000,
-          distanceInterval: 1,
-        },
-        (location) => {
-          //console.log("LOCATION  WHEN CLICKED HELP : ");
-          //console.log(location);
-          location.accuracy = parseFloat(location.accuracy);
-          updateAccuracy(location); // storing accuracy values to array
-          iterationCount++;
-
-          if (iterationCount === 4) {
-            locationSubscription.remove(); //stoping HELP location tracking after 4 iterations
-
-            console.log("Location updates stopped after 4 iterations");
-          }
-        }
-      );
-    }
-    getLocationUpdates();
-  };
+  function deg2rad(deg) {
+    // converting lat,long values to radian
+    return deg * (Math.PI / 180);
+  }
 
   const addInfo = () => {
     // additional info button functions
