@@ -9,6 +9,10 @@ import {
   View,
 } from "react-native";
 import * as Location from "expo-location";
+import { useNavigation } from '@react-navigation/native';
+import ProfileScreen from "./profileScreen";
+
+
 
 export default function Homepage() {
   const [location, setLocation] = useState(null);
@@ -22,6 +26,13 @@ export default function Homepage() {
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
+
+  const navigation = useNavigation();
+
+  const navPress = () => {
+    // Navigate to the desired screen/page
+    navigation.navigate('ProfileScreen');
+  };
 
   const curLoc = async () => {
     // function for getting current location of a user
@@ -120,12 +131,7 @@ export default function Homepage() {
       76.7771992
     );
 
-    // compareLoc(
-    //   sendLocation.latitude,
-    //   sendLocation.longitude,
-    //   9.685082,
-    //   76.7771992
-    // );
+    
 
     // console.log("The accident current location details is : ");
     // async function getLocationUpdates() {
@@ -220,6 +226,7 @@ export default function Homepage() {
 
   return (
     <SafeAreaView style={styles.container}>
+       <TouchableOpacity onPress={navPress}>
       <View style={styles.profileBar}>
         <Image
           source={require("../assets/profimg.png")}
@@ -230,7 +237,7 @@ export default function Homepage() {
           <Text style={styles.bioText}>Software Developer</Text>
         </View>
       </View>
-
+      </TouchableOpacity>
       <StatusBar style="auto" />
 
       <View style={styles.emergencyTextField}>
